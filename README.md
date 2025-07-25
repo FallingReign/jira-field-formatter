@@ -2,6 +2,8 @@
 
 A standalone Node.js library for formatting field values to be compatible with the Jira REST API. This library handles the conversion of various input types (strings, numbers, Excel data) into properly formatted JSON objects that Jira's API expects.
 
+**🔧 Designed for Git Submodules** - No npm installation required, just clone and import!
+
 ## Features
 
 - ✅ **Complete Field Type Support** - Handles all Jira field types including arrays, dates, users, options, etc.
@@ -9,19 +11,66 @@ A standalone Node.js library for formatting field values to be compatible with t
 - ✅ **Type Safety** - Comprehensive validation and error handling
 - ✅ **Modular Design** - Use individual functions or the main formatValue function
 - ✅ **Zero Dependencies** - Pure JavaScript with no external dependencies
-- ✅ **ES Modules** - Modern JavaScript module support
+- ✅ **ES Modules Only** - Modern JavaScript module support (Node.js 14+)
+- ✅ **Submodule Ready** - Perfect for git submodule integration
+
+## Requirements
+
+- **Node.js 14+** - Required for ES modules support
+- **Modern JavaScript environment** - This library uses ES modules exclusively
+
+> **Note:** This library is ESM-only and does not support CommonJS. If you need CommonJS support, consider upgrading your project to ES modules or using dynamic imports: `const { formatValue } = await import('./path/to/jira-field-formatter/index.js')`
 
 ## Installation
 
-```bash
-# Install locally from your cloned repository
-npm install /path/to/jira-field-formatter
+Use this library as a git submodule in your project:
 
-# Or, if using in the same workspace, reference directly:
-import { formatValue } from './jira-field-formatter';
+```bash
+# Add as a submodule
+git submodule add https://github.com/FallingReign/jira-field-formatter.git lib/jira-field-formatter
+
+# Initialize and update the submodule
+git submodule update --init --recursive
 ```
 
-> **Note:** This library is not published on npm yet. Clone the repository and use a local path for installation, or import directly from your project.
+Then import it in your project:
+
+```javascript
+// ES Modules
+import { formatValue, FieldTypes } from './lib/jira-field-formatter/index.js';
+
+// Or for specific utilities
+import { formatDateValue } from './lib/jira-field-formatter/src/utils/dateUtils.js';
+```
+
+### Alternative: Direct Clone
+
+```bash
+# Clone the repository
+git clone https://github.com/FallingReign/jira-field-formatter.git
+
+# Include in your project
+import { formatValue } from './jira-field-formatter/index.js';
+```
+
+📖 **For detailed submodule setup instructions, see [SUBMODULE.md](SUBMODULE.md)**
+
+### Using with CommonJS Projects
+
+If your project still uses CommonJS, you can use dynamic imports:
+
+```javascript
+// In an async function
+async function setupJiraFormatter() {
+  const { formatValue, FieldTypes } = await import('./lib/jira-field-formatter/index.js');
+  
+  const issueType = formatValue('Bug', FieldTypes.ISSUE_TYPE);
+  console.log(issueType); // { name: 'Bug' }
+}
+
+// Or at the top level in Node.js (if supported)
+const { formatValue, FieldTypes } = await import('./lib/jira-field-formatter/index.js');
+```
 
 ## Quick Start
 
