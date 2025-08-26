@@ -23,20 +23,32 @@ A standalone Node.js library for formatting field values to be compatible with t
 
 ## Installation
 
-Use this library as a git submodule in your project:
+### Recommended: Git Submodule with Version Control
+
+Use this library as a git submodule in your project with version tagging:
 
 ```bash
-# Add as a submodule
-git submodule add https://github.com/FallingReign/jira-field-formatter.git lib/jira-field-formatter
+# Latest stable version (recommended)
+git submodule add -b latest https://github.com/FallingReign/jira-field-formatter.git lib/jira-field-formatter
 
-# Initialize and update the submodule
+# Or pin to a specific version
+git submodule add -b v1.2.0 https://github.com/FallingReign/jira-field-formatter.git lib/jira-field-formatter
+
+# Initialize and update
 git submodule update --init --recursive
 ```
+
+### Available Versions
+- `latest` - Always points to the most recent stable release ⭐
+- `v1.2.0` - Current stable release
+- `master` - Development branch (not recommended for production)
+
+> **🔖 Version Strategy:** We use semantic versioning with git tags. The `latest` tag always points to the most recent stable release, while specific version tags (like `v1.2.0`) provide pinned stability.
 
 Then import it in your project:
 
 ```javascript
-// ES Modules
+// ES Modules (Required - Node.js 14+)
 import { formatValue, FieldTypes } from './lib/jira-field-formatter/index.js';
 
 // Or for specific utilities
@@ -53,23 +65,54 @@ git clone https://github.com/FallingReign/jira-field-formatter.git
 import { formatValue } from './jira-field-formatter/index.js';
 ```
 
-📖 **For detailed submodule setup instructions, see [SUBMODULE.md](SUBMODULE.md)**
+## 🔧 Submodule Management
 
-### Using with CommonJS Projects
+### Updating Your Submodule
 
-If your project still uses CommonJS, you can use dynamic imports:
+```bash
+# Update to latest stable version (recommended)
+cd lib/jira-field-formatter
+git fetch origin
+git checkout latest
+cd ../..
+git add lib/jira-field-formatter
+git commit -m "Update jira-field-formatter to latest stable version"
 
-```javascript
-// In an async function
-async function setupJiraFormatter() {
-  const { formatValue, FieldTypes } = await import('./lib/jira-field-formatter/index.js');
-  
-  const issueType = formatValue('Bug', FieldTypes.ISSUE_TYPE);
-  console.log(issueType); // { name: 'Bug' }
-}
+# Or update to a specific version
+cd lib/jira-field-formatter
+git fetch origin
+git checkout v1.2.0  # Replace with desired version
+cd ../..
+git add lib/jira-field-formatter
+git commit -m "Update jira-field-formatter to v1.2.0"
+```
 
-// Or at the top level in Node.js (if supported)
-const { formatValue, FieldTypes } = await import('./lib/jira-field-formatter/index.js');
+### When Others Clone Your Project
+
+```bash
+# Clone with submodules
+git clone --recursive https://github.com/your-username/your-project.git
+
+# Or initialize submodules after cloning
+git clone https://github.com/your-username/your-project.git
+cd your-project
+git submodule update --init --recursive
+```
+
+📖 **Complete submodule setup guide included below**
+
+> **Important:** This library is ESM-only and requires Node.js 14+ with ES modules support. It does not support CommonJS.
+
+### 🔍 Version Management
+
+Users can easily check their version and get updates using the included version check script:
+
+```bash
+# Copy the version checker to your project
+cp lib/jira-field-formatter/scripts/version-check.js ./check-version.js
+
+# Check your current version and available updates  
+node check-version.js
 ```
 
 ## Quick Start
