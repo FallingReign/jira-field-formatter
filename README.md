@@ -23,27 +23,32 @@ A standalone Node.js library for formatting field values to be compatible with t
 
 ## Installation
 
-### Recommended: Git Submodule with Version Control
+### Git Submodule (Recommended)
 
-Use this library as a git submodule in your project with version tagging:
+Add this library as a git submodule to your project:
 
 ```bash
-# Latest stable version (recommended)
-git submodule add -b latest https://github.com/FallingReign/jira-field-formatter.git lib/jira-field-formatter
+# Add the submodule (gets latest development version)
+git submodule add https://github.com/FallingReign/jira-field-formatter.git lib/jira-field-formatter
 
-# Or pin to a specific version
-git submodule add -b v1.2.0 https://github.com/FallingReign/jira-field-formatter.git lib/jira-field-formatter
+# For production: pin to a specific stable version
+cd lib/jira-field-formatter
+git checkout v1.2.0  # Replace with desired version
+cd ../..
 
-# Initialize and update
+# Commit the submodule
+git add .gitmodules lib/jira-field-formatter
+git commit -m "Add jira-field-formatter submodule (v1.2.0)"
+
+# Initialize for team members
 git submodule update --init --recursive
 ```
 
 ### Available Versions
-- `latest` - Always points to the most recent stable release ⭐
-- `v1.2.0` - Current stable release
-- `master` - Development branch (not recommended for production)
+- `v1.2.0` - Current stable release ⭐
+- `master` - Latest development version (default)
 
-> **🔖 Version Strategy:** We use semantic versioning with git tags. The `latest` tag always points to the most recent stable release, while specific version tags (like `v1.2.0`) provide pinned stability.
+> **🔖 Version Strategy:** We use semantic versioning with git tags. Pin to specific versions (like `v1.2.0`) for production stability, or use `master` for latest features.
 
 Then import it in your project:
 
@@ -70,21 +75,21 @@ import { formatValue } from './jira-field-formatter/index.js';
 ### Updating Your Submodule
 
 ```bash
-# Update to latest stable version (recommended)
+# Update to latest development version
 cd lib/jira-field-formatter
-git fetch origin
-git checkout latest
+git checkout master
+git pull origin master
 cd ../..
 git add lib/jira-field-formatter
-git commit -m "Update jira-field-formatter to latest stable version"
+git commit -m "Update jira-field-formatter to latest development"
 
-# Or update to a specific version
+# Or switch to a different version
 cd lib/jira-field-formatter
 git fetch origin
-git checkout v1.2.0  # Replace with desired version
+git checkout v1.3.0  # Replace with desired version
 cd ../..
 git add lib/jira-field-formatter
-git commit -m "Update jira-field-formatter to v1.2.0"
+git commit -m "Update jira-field-formatter to v1.3.0"
 ```
 
 ### When Others Clone Your Project

@@ -6,8 +6,7 @@
  * This script helps manage version releases by:
  * 1. Updating package.json version
  * 2. Creating version tags
- * 3. Updating the 'latest' tag
- * 4. Running tests before release
+ * 3. Running tests before release
  * 
  * Usage:
  *   node scripts/release.js patch   # 1.2.0 -> 1.2.1
@@ -101,17 +100,13 @@ function main() {
   console.log(`🏷️  Creating version tag v${newVersion}...`);
   exec(`git tag -a v${newVersion} -m "Release version ${newVersion}"`);
 
-  // Update latest tag
-  console.log('🏷️  Updating latest tag...');
-  exec('git tag -f latest');
-
   console.log('\n🎉 Release process completed!');
   console.log('\n📋 Next steps:');
   console.log('1. Push commits: git push origin master');
-  console.log('2. Push tags: git push origin --tags --force');
+  console.log('2. Push tags: git push origin --tags');
   console.log('\n📖 Users can now use:');
-  console.log(`   git submodule add -b v${newVersion} <repo-url> lib/jira-field-formatter`);
-  console.log(`   git submodule add -b latest <repo-url> lib/jira-field-formatter`);
+  console.log(`   git submodule add <repo-url> lib/jira-field-formatter`);
+  console.log(`   cd lib/jira-field-formatter && git checkout v${newVersion}`);
 }
 
 main();

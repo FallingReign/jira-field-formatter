@@ -65,7 +65,8 @@ function main() {
   if (!checkSubmoduleExists()) {
     console.log('❌ Jira Field Formatter submodule not found.');
     console.log('\nTo add it to your project:');
-    console.log(`   git submodule add -b latest ${REPO_URL} ${SUBMODULE_PATH}`);
+    console.log(`   git submodule add ${REPO_URL} ${SUBMODULE_PATH}`);
+    console.log(`   cd ${SUBMODULE_PATH} && git checkout v1.2.0  # Pin to specific version`);
     return;
   }
 
@@ -86,31 +87,30 @@ function main() {
   console.log(`📋 Latest stable version: ${latestVersion}`);
 
   // Check if update is available
-  if (currentVersion !== latestVersion && currentVersion !== 'latest') {
+  if (currentVersion !== latestVersion && !currentVersion.startsWith('v')) {
     console.log('\n🆙 Update available!');
     console.log('\nTo update to latest stable version:');
     console.log(`   cd ${SUBMODULE_PATH}`);
     console.log('   git fetch origin');
-    console.log('   git checkout latest');
+    console.log(`   git checkout ${latestVersion}`);
     console.log('   cd ../..');
     console.log(`   git add ${SUBMODULE_PATH}`);
-    console.log('   git commit -m "Update jira-field-formatter to latest version"');
+    console.log(`   git commit -m "Update jira-field-formatter to ${latestVersion}"`);
   } else {
-    console.log('\n✅ You are using the latest version!');
+    console.log('\n✅ You are using a stable version!');
   }
 
   // Show available versions
   console.log('\n📋 Available versions:');
   availableVersions.forEach(version => {
     const marker = version === currentVersion ? ' (current)' : '';
-    const latestMarker = version === 'latest' ? ' (stable)' : '';
-    console.log(`   ${version}${marker}${latestMarker}`);
+    console.log(`   ${version}${marker}`);
   });
 
   console.log('\n📖 Version usage:');
-  console.log('   - Use "latest" for most recent stable release');
-  console.log('   - Use "v1.2.0" for specific version pinning');
-  console.log('   - Use "master" for development version (not recommended for production)');
+  console.log('   - Use specific versions (e.g., "v1.2.0") for production stability');
+  console.log('   - Use "master" for latest development features');
+  console.log('   - Pin to specific versions to avoid breaking changes');
 }
 
 main();
