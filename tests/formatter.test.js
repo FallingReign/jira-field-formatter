@@ -2,8 +2,8 @@
  * Tests for the main formatter functionality
  */
 
-import { formatValue, getFieldTypeDefinitions, validateFieldType, getFieldTypeInfo } from '../src/formatter.js';
-import { FieldTypes } from '../src/fieldTypes.js';
+// Import from public API (post-consolidation)
+import { formatValue, getFieldTypeDefinitions, validateFieldType, getFieldTypeInfo, FieldTypes } from '..';
 
 describe('formatValue', () => {
   describe('Empty values', () => {

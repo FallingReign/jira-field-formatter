@@ -2,7 +2,8 @@
  * Validation utilities for Jira field formatting
  */
 
-import { isValidFieldType, isValidArrayFieldType } from '../fieldTypes.js';
+// Using domain-owned field type taxonomy (Phase 3e consolidation)
+import { isValidFieldType, isValidArrayFieldType } from '../domain/fieldTypes.js';
 
 /**
  * Check if a value is empty (null, undefined, or empty string)
@@ -23,6 +24,80 @@ export function isJiraKey(value) {
     return false;
   }
   return /^[A-Z]+-\d+$/.test(value);
+}
+
+/**
+ * Check if a value is already properly formatted for its field type
+ * This helps determine if we should leave a value alone (power user case) 
+ * or format it (casual user case)
+ * @param {any} value - The value to check
+ * @param {string} fieldType - The expected Jira field type
+ * @returns {boolean} True if already properly formatted
+ */
+export function isAlreadyFormatted(value, fieldType) {
+  if (isEmpty(value)) return false;
+  
+  // Handle both FieldTypes constants and string field types
+  const normalizedType = typeof fieldType === 'string' ? fieldType.toLowerCase() : fieldType;
+  
+  switch (normalizedType) {
+    case 'option-with-child':
+      // Cascading fields should be objects with 'value' or 'id' property
+      return typeof value === 'object' && value !== null && 
+             ('value' in value || 'id' in value);
+             
+    case 'priority':
+    case 'issuetype':
+    case 'user':
+    case 'assignee':
+    case 'reporter':
+    case 'resolution':
+    case 'status':
+    case 'securitylevel':
+    case 'option':
+    case 'version':
+    case 'component':
+    case 'attachment':
+      // These fields should be objects with 'name' or 'id' property
+      return typeof value === 'object' && value !== null && 
+             ('name' in value || 'id' in value);
+             
+    case 'project':
+    case 'issuelink':
+    case 'issuelinks':
+      // These fields should be objects with 'key' or 'id' property
+      return typeof value === 'object' && value !== null && 
+             ('key' in value || 'id' in value);
+             
+    case 'array':
+      // Arrays should already be arrays
+      return Array.isArray(value);
+      
+    case 'date':
+      // Check for YYYY-MM-DD format
+      return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+      
+    case 'datetime':
+      // Check for ISO datetime format
+      return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value);
+      
+    case 'timetracking':
+      // Time tracking should be an object with originalEstimate/remainingEstimate
+      return typeof value === 'object' && value !== null &&
+             ('originalEstimate' in value || 'remainingEstimate' in value);
+             
+    case 'watches':
+      // Watches should be an object with watchers array
+      return typeof value === 'object' && value !== null && 'watchers' in value;
+      
+    case 'string':
+    case 'number':
+    case 'any':
+    default:
+      // These types accept primitive values, so they're always "formatted"
+      // We return true to avoid unnecessary formatting
+      return true;
+  }
 }
 
 /**

@@ -1,23 +1,47 @@
 # Jira Field Formatter
 
-A standalone Node.js library for formatting field values to be compatible with the Jira REST API. This library handles the conversion of various input types (strings, numbers, Excel data) into properly formatted JSON objects that Jira's API expects.
+A focused Jira integration utility that converts raw input (including Excel serials) into Jira REST API–compatible payloads and now (Phase 3 architecture) offers domain + service + orchestration layers for full issue creation workflows.
 
-**🔧 Designed for Git Submodules** - No npm installation required, just clone and import!
+**🔧 Designed for Git Submodules** – Drop into any project without publishing to npm.
+
+## At a Glance
+
+| Need | Start Here | Key Methods | Side Effects | When to Choose |
+|------|------------|-------------|--------------|----------------|
+| Format a single known field | `formatValue` | `formatValue()` | None | Quick, explicit field type known |
+| Bulk format & validate against Jira schemas | `FieldService` | `formatInputPayload()`, `validateInputPayload()` | Fetch createmeta | Dynamic field sets, schema-driven |
+| Full issue lifecycle (format → prepare → create) | `IssueService` | `format()`, `validate()`, `prepare()`, `create()` | Fetch + (optional) create | Clear stage boundaries |
+| Functional wrappers for orchestration | Helpers | `formatIssueFields()`, `validateIssueFields()`, `createIssue()` | Same as above | Prefer functions over classes |
+| Raw HTTP operations | `JiraApiClient` + *Apis | `get()`, `post()` | Network | Custom / advanced workflows |
+
+> Deprecation: Procedural `formatValue` now emits a Node warning (`code: JIRA_FF_DEPRECATED`) on first use. It will be removed or become an opt-in alias in v3.0.0. Prefer `Field`, `FieldService`, or `IssueService`. Silence with `JIRA_FF_SUPPRESS_DEPRECATION=1`.
 
 ## Features
 
-- ✅ **Complete Field Type Support** - Handles all Jira field types including arrays, dates, users, options, etc.
-- ✅ **Excel Integration** - Automatically converts Excel date serial numbers and other Excel-specific formats
-- ✅ **Type Safety** - Comprehensive validation and error handling
-- ✅ **Modular Design** - Use individual functions or the main formatValue function
-- ✅ **Zero Dependencies** - Pure JavaScript with no external dependencies
-- ✅ **ES Modules Only** - Modern JavaScript module support (Node.js 14+)
-- ✅ **Submodule Ready** - Perfect for git submodule integration
-
+- ✅ **Full Field Type Coverage** – Jira system + array, cascading select, timetracking, watches, Service Desk fields
+- ✅ **Excel Aware** – Date & datetime serial number parsing
+- ✅ **Domain Layer** – `Field` encapsulates schema mapping & per-field behavior
+- ✅ **Service Layer** – `FieldService` caches schemas & performs bulk formatting / validation
+- ✅ **Orchestration Layer** – `IssueService` provides single-purpose workflow steps
+- ✅ **Schema Caching** – In-memory TTL (default 300s) reduces createmeta calls
+- ✅ **Functional Helpers** – Pure functions wrapping orchestration for functional style
+- ✅ **ESM Only** – Modern module system
+- ✅ **Minimal Runtime Dependency** – Only `dotenv` for self-contained env loading
 ## Requirements
 
-- **Node.js 14+** - Required for ES modules support
-- **Modern JavaScript environment** - This library uses ES modules exclusively
+- **Node.js 18+** – Required (uses native `fetch`). If using earlier Node versions you must polyfill; official support targets 18+.
+- **Jira Cloud / Data Center REST API** – Supply credentials via environment variables.
+
+### Environment Variables (Required for API usage)
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `JIRA_BASE_URL` | Yes | — | Base Jira URL (e.g. `https://your-domain.atlassian.net`) |
+| `JIRA_API_VERSION` | Yes | — | REST API version segment (e.g. `3`) |
+| `JIRA_TOKEN` | Yes | — | Jira personal access (Bearer) token |
+| `JIRA_SCHEMA_CACHE_TTL` | No | `300` | Seconds to cache field schemas (createmeta) |
+
+`.env.example` illustrates expected keys. Never commit your real `.env`.
 
 > **Note:** This library is ESM-only and does not support CommonJS. If you need CommonJS support, consider upgrading your project to ES modules or using dynamic imports: `const { formatValue } = await import('./path/to/jira-field-formatter/index.js')`
 
@@ -45,10 +69,12 @@ git submodule update --init --recursive
 ```
 
 ### Available Versions
-- `v1.2.0` - Current stable release ⭐
-- `master` - Latest development version (default)
+| Tag | Status | Notes |
+|-----|--------|-------|
+| `v1.2.0` | Stable | Last release before introduction of domain/service/issue orchestration (unreleased in tag form) |
+| `master` | Active Dev | Contains Field / FieldService / IssueService – pin when new release tag published |
 
-> **🔖 Version Strategy:** We use semantic versioning with git tags. Pin to specific versions (like `v1.2.0`) for production stability, or use `master` for latest features.
+> Until the next tag (e.g. `v1.3.0`) is cut, new orchestration features live on `master`.
 
 Then import it in your project:
 
@@ -140,6 +166,156 @@ const arrayField = formatValue('Option1,Option2,Option3', 'array', 'option');
 // Returns: [{ name: 'Option1' }, { name: 'Option2' }, { name: 'Option3' }]
 ```
 
+## 🧠 Issue Orchestration (IssueService)
+
+Phase 3d introduced an orchestration layer that keeps formatting, validation, preparation, and creation as single-purpose steps. This improves testability and lets you inspect or modify intermediate payloads before sending them to Jira.
+
+```javascript
+import { IssueService, FieldService } from 'jira-field-formatter';
+
+// Instantiate (can inject logger / custom IssuesApi)
+const issueService = new IssueService({ fieldService: new FieldService() });
+
+// 1. Format raw user input using dynamic field schemas
+const formatRes = await issueService.format({ Summary: ' Title ', Labels: 'one,two', Foo: 'x' }, 'PROJ', '10001');
+console.log(formatRes.fields);  // { Summary: 'Title', Labels: ['one','two'] }
+console.log(formatRes.errors);  // Unknown fields, etc.
+
+// 2. Validate (optional) - ensures required fields present & values valid
+const validation = await issueService.validate(formatRes.fields, 'PROJ', '10001');
+if (!validation.valid) console.warn(validation.fieldErrors);
+
+// 3. Prepare a full Jira issue payload (does NOT call Jira)
+const { baseIssue } = await issueService.prepare({
+  projectKey: 'PROJ',
+  issueTypeId: '10001',
+  summary: 'Title',
+  description: 'Body',
+  fields: { Summary: 'Title', Labels: 'one,two' }
+});
+
+// 4. Create (side effect) - expects already formatted structure from prepare()
+const created = await issueService.create(baseIssue);
+if (created.success) {
+  console.log('Created issue:', created.key);
+} else {
+  console.error('Create failed:', created.errors);
+}
+```
+
+Why no single `formatAndCreate`? Separation gives:
+- Faster retries (skip re-formatting)
+- Hook points for adding attachments / transitions between steps
+- Deterministic unit tests per phase
+
+See `examples/issue-service-usage.js` for a runnable mocked example (no real network calls – schemas & create are mocked).
+
+---
+
+## 🔀 Decision Matrix (Detailed)
+
+| Scenario | Use This | Returns | Throw Behavior | Notes |
+|----------|----------|---------|----------------|-------|
+| Format one field quickly | `formatValue()` | Formatted value or null | Throws on invalid type / array misuse | Fast, explicit |
+| Bulk format raw fields | `FieldService.formatInputPayload()` | `{ fields, diagnostics }` | Never for unknown fields | Diagnostics include counts & unknown list |
+| Bulk validate raw fields | `FieldService.validateInputPayload()` | `{ valid, fieldResults, errors }` | Never for unknown fields | Marks missing required fields |
+| One-step (validate+format) | `FieldService.autoDetectAndFormat()` | `{ validation, fields }` | Same as above | Convenience combo |
+| Workflow formatting | `IssueService.format()` | `FormatResult` | Non-throwing (collects errors) | Adds meta timing |
+| Workflow validation | `IssueService.validate()` | `ValidationResult` | Non-throwing | Summaries for pass/fail |
+| Prepare full payload | `IssueService.prepare()` | `{ baseIssue, format }` | Throws only if missing projectKey / issueTypeId | No network create |
+| Create already prepared | `IssueService.create()` | `{ success, key?, errors? }` | Transport errors caught -> result | Idempotent if you reuse payload |
+| Functional equivalents | Helpers (`formatIssueFields`, etc.) | Same as above | Same | Stateless wrappers |
+
+---
+
+## 🧩 Function Catalog
+
+### Core Formatting
+| Function | Purpose | Input | Output | Throws |
+|----------|---------|-------|--------|-------|
+| `formatValue(value, fieldType, arrayType?)` | Format a single value | Primitive / string / number | Jira-compatible value (object, primitive or null) | Invalid field type, missing array subtype, bad JSON for checklist |
+| `getFieldTypeDefinitions()` | Enumerate field type constants | – | Object map | – |
+| `validateFieldType(type)` | Check if supported | String | Boolean | – |
+| `getFieldTypeInfo(type)` | Metadata & formatting category | String | `{ fieldType, format, isArray, ... }` | Invalid type |
+
+### Domain
+| Symbol | Purpose | Key Methods |
+|--------|---------|-------------|
+| `Field` | Encapsulates schema mapping & per-field behavior | `format(value)`, `validate(value)`, `isEmpty(value)` |
+| `mapSchemaToFieldType(schema)` | Convert Jira schema → internal field type | Returns internal type or throws (caught & downgraded to ANY) |
+
+### Services
+| Symbol | Purpose | Highlight Methods / Returns |
+|--------|---------|-----------------------------|
+| `FieldService` | Schema retrieval + caching + multi-field operations | `formatInputPayload()`, `validateInputPayload()`, `autoDetectAndFormat()` |
+| `IssueService` | Workflow orchestration stages | `format()`, `validate()`, `prepare()`, `create()` |
+
+### Helper Functions (Stateless Wrappers)
+| Function | Wraps | Return |
+|----------|-------|--------|
+| `formatIssueFields(...)` | `IssueService.format` | FormatResult |
+| `validateIssueFields(...)` | `IssueService.validate` | ValidationResult |
+| `createIssue(...)` | `IssueService.create` | CreateResult |
+
+### API Layer
+| Class | Purpose | Core Methods |
+|-------|---------|--------------|
+| `JiraApiClient` | Low-level HTTP (auth, fetch) | `get()`, `post()`, `getEndpoint()`, `getBaseURL()` |
+| `IssuesApi` | Issue REST endpoints | `createIssue()`, `getIssueTypeIdByName()` |
+| `FieldsApi` | Field schema endpoints | `getAllFieldSchemas()`, `getFieldSchema()`, `isFieldPresent()` |
+| `UsersApi` | User lookups | `findUser()` |
+
+### Utilities (Selected)
+| Function | Purpose |
+|----------|---------|
+| `formatDateValue` / `formatDateTimeValue` | Normalize user / Excel date inputs |
+| `parseTimeTracking` | Parse original estimate syntax | 
+| `isValidTimeTrackingFormat` | Validate time pattern |
+| `isEmpty`, `sanitizeString`, `parseNumber` | Normalization helpers |
+| `isJiraKey` | Simple issue key pattern check |
+| `validateFieldTypes` / `validateValueForFieldType` | Pre-flight validation |
+
+> Full internals documented in code; catalog lists stable entry points.
+
+---
+
+## 🗂 Architecture Layers
+
+```
+Raw Input -> FieldService (schemas + Field objects) -> IssueService (workflow) -> IssuesApi -> JiraApiClient -> Jira REST API
+                                 |             
+                                 +-- Helpers (functional wrappers)
+```
+
+### Caching Strategy
+| Aspect | Detail |
+|--------|--------|
+| Store | In-memory Map keyed `projectKey:issueTypeId` |
+| TTL | Default 300s (override via `JIRA_SCHEMA_CACHE_TTL`) |
+| Invalidation | `forceRefresh` option on `fetchSchemas` |
+| Failure Behavior | Empty schema array; formatting logs unknown fields |
+
+### Error Model
+| Layer | Throws | Collects |
+|-------|-------|----------|
+| `formatValue` | Invalid config (field type) | – |
+| `Field.format` | Propagates formatting errors (caught by service) | – |
+| `FieldService.formatInputPayload` | Never (logs) | Unknown / empty / per-field failure reasons |
+| `IssueService.format` | Never (except catastrophic) | Unknown fields as errors array, non-fatal warnings |
+| `IssueService.create` | Converts API failures to `{ success:false, errors:[...] }` | – |
+
+### Deprecation Path
+| Item | Status | Guidance |
+|------|--------|----------|
+| `formatValue` (procedural) | Deprecated – emits `JIRA_FF_DEPRECATED` warning (removed/aliased in v3.0.0) | Migrate to Field / FieldService / IssueService |
+| Deep imports `src/formatter.js`, `src/fieldTypes.js` | Discouraged (may break in v3.0.0) | Use root exports (`import { formatValue } from 'jira-field-formatter'`) |
+| `JiraApi` / `JiraHttpClient` | Removed in v2.0.0 | Use `JiraApiClient` + domain APIs |
+
+Migration Tip: Start by replacing procedural multi-field loops with `FieldService.formatInputPayload`, then introduce `IssueService.prepare` before final create step.
+
+---
+
+
 ## Supported Field Types
 
 ### Basic Types
@@ -194,7 +370,7 @@ const arrayResult = formatValue('Red,Green,Blue', 'array', 'option');
 **Supported field type strings:**
 `timetracking`, `issuetype`, `string`, `priority`, `resolution`, `status`, `securitylevel`, `watches`, `any`, `array`, `option-with-child`, `user`, `option`, `date`, `project`, `number`, `datetime`, `issuelink`, `version`, `attachment`, `issuelinks`, `component`, `sd-servicelevelagreement`, `sd-approvals`, `sd-customerrequesttype`, `checklist-item`
 
-## API Reference
+## API Reference (Selected – see Function Catalog for more)
 
 ### formatValue(value, fieldType, arrayFieldType?)
 
@@ -306,7 +482,7 @@ formatValue('2w 3d 4h 30m', FieldTypes.TIME_TRACKING);
 // { originalEstimate: '2w 3d 4h 30m' }
 ```
 
-## Error Handling
+## Error Handling (Procedural)
 
 The library provides comprehensive error handling:
 
@@ -351,7 +527,14 @@ const jiraKey = isJiraKey('PROJ-123'); // true
 const validation = validateFieldTypes('array', 'option'); // { isValid: true }
 ```
 
-## TypeScript Support
+## TypeScript Support / Roadmap
+
+Currently untyped JavaScript. Planned minimal `.d.ts` surfaces (ETA Phase 3e or later):
+1. Core formatting (`formatValue`, field type enums)
+2. Domain & Services interfaces (Field, FieldService, IssueService result shapes)
+3. Helper function result types
+
+Interim: You can author local ambient declarations to wrap Create / Format / Validation result shapes.
 
 The library includes TypeScript definitions (coming soon):
 
@@ -370,6 +553,21 @@ Contributions are welcome! Please read our contributing guidelines and submit pu
 MIT License - see LICENSE file for details.
 
 ## Changelog
+
+### v2.2.0
+- Deprecation hardening: root exports unified under domain; structured warning for `formatValue`; added suppression flag docs.
+
+### v2.1.0
+- Internal consolidation: single source of truth for field types & formatter in domain layer; shims introduced.
+
+### v2.0.0
+- BREAKING: Removed deprecated wrappers `JiraApi` and `JiraHttpClient` (use `JiraApiClient`, `UsersApi`, `IssuesApi`, `FieldsApi`).
+- Added Domain + Service + Orchestration layers: `Field`, `FieldService`, `IssueService`.
+- Added helper functions: `formatIssueFields`, `validateIssueFields`, `createIssue`.
+- Introduced schema caching (TTL via `JIRA_SCHEMA_CACHE_TTL`).
+- Added soft deprecation warning for procedural `formatValue` on first invocation.
+- Added examples: `issue-service-usage.js`.
+- Raised documented Node requirement to 18+ (native fetch).
 
 ### v1.2.0
 - ✨ **New Field Types**: Added commonly requested field types:
