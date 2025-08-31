@@ -1,6 +1,6 @@
 {
   "name": "jira-field-formatter",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "A standalone Node.js library for formatting field values to be compatible with the Jira REST API",
   "main": "index.js",
   "type": "module",
