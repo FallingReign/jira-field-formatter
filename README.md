@@ -71,8 +71,12 @@ git submodule update --init --recursive
 ### Available Versions
 | Tag | Status | Notes |
 |-----|--------|-------|
-| `v1.2.0` | Stable | Last release before introduction of domain/service/issue orchestration (unreleased in tag form) |
-| `master` | Active Dev | Contains Field / FieldService / IssueService – pin when new release tag published |
+| `v2.2.1` | Current | Deprecation hardened warning for procedural formatValue |
+| `v2.2.0` | Stable | Domain unified exports, stronger deprecation path |
+| `v2.1.0` | Stable | Domain consolidation, shims introduced |
+| `v2.0.0` | Breaking | Removed deprecated JiraApi/JiraHttpClient |
+| `v1.2.0` | Legacy | Pre-domain/service orchestration baseline |
+| `master` | Active Dev | Latest (potentially unstable) features – do not pin for prod |
 
 > Until the next tag (e.g. `v1.3.0`) is cut, new orchestration features live on `master`.
 
@@ -136,7 +140,7 @@ git submodule update --init --recursive
 
 ### 🔍 Version Management
 
-Users can easily check their version and get updates using the included version check script:
+Users can easily check their version and get updates using the included version check script (floating `latest` tag discontinued – only semantic version tags are published now):
 
 ```bash
 # Copy the version checker to your project
