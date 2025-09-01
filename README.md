@@ -8,13 +8,13 @@ A focused Jira integration utility that converts raw input (including Excel seri
 
 | Need | Start Here | Key Methods | Side Effects | When to Choose |
 |------|------------|-------------|--------------|----------------|
-| Format a single known field | `formatValue` | `formatValue()` | None | Quick, explicit field type known |
+| Format a single known field | `formatFieldValue` | `formatFieldValue()` | None | Quick, explicit field type known |
 | Bulk format & validate against Jira schemas | `FieldService` | `formatInputPayload()`, `validateInputPayload()` | Fetch createmeta | Dynamic field sets, schema-driven |
 | Full issue lifecycle (format → prepare → create) | `IssueService` | `format()`, `validate()`, `prepare()`, `create()` | Fetch + (optional) create | Clear stage boundaries |
 | Functional wrappers for orchestration | Helpers | `formatIssueFields()`, `validateIssueFields()`, `createIssue()` | Same as above | Prefer functions over classes |
 | Raw HTTP operations | `JiraApiClient` + *Apis | `get()`, `post()` | Network | Custom / advanced workflows |
 
-> Deprecation: Procedural `formatValue` now emits a Node warning (`code: JIRA_FF_DEPRECATED`) on first use. It will be removed or become an opt-in alias in v3.0.0. Prefer `Field`, `FieldService`, or `IssueService`. Silence with `JIRA_FF_SUPPRESS_DEPRECATION=1`.
+> v3.0.0 Breaking: Procedural `formatValue` removed. Use `formatFieldValue` (new name) or higher-level abstractions (`Field`, `FieldService`, `IssueService`).
 
 ## Features
 
@@ -156,17 +156,17 @@ node check-version.js
 import { formatValue, FieldTypes } from 'jira-field-formatter';
 
 // Format using constants (recommended for IDE support)
-const issueType = formatValue('Bug', FieldTypes.ISSUE_TYPE);
+const issueType = formatFieldValue('Bug', FieldTypes.ISSUE_TYPE);
 // Returns: { name: 'Bug' }
 
 // Format using strings directly from Jira (convenient for dynamic usage)
-const priority = formatValue('High', 'priority');
+const priority = formatFieldValue('High', 'priority');
 // Returns: { name: 'High' }
 
-const dateField = formatValue('2023-12-25', 'date');
+const dateField = formatFieldValue('2023-12-25', 'date');
 // Returns: '2023-12-25'
 
-const arrayField = formatValue('Option1,Option2,Option3', 'array', 'option');
+const arrayField = formatFieldValue('Option1,Option2,Option3', 'array', 'option');
 // Returns: [{ name: 'Option1' }, { name: 'Option2' }, { name: 'Option3' }]
 ```
 
@@ -220,7 +220,7 @@ See `examples/issue-service-usage.js` for a runnable mocked example (no real net
 
 | Scenario | Use This | Returns | Throw Behavior | Notes |
 |----------|----------|---------|----------------|-------|
-| Format one field quickly | `formatValue()` | Formatted value or null | Throws on invalid type / array misuse | Fast, explicit |
+| Format one field quickly | `formatFieldValue()` | Formatted value or null | Throws on invalid type / array misuse | Fast, explicit |
 | Bulk format raw fields | `FieldService.formatInputPayload()` | `{ fields, diagnostics }` | Never for unknown fields | Diagnostics include counts & unknown list |
 | Bulk validate raw fields | `FieldService.validateInputPayload()` | `{ valid, fieldResults, errors }` | Never for unknown fields | Marks missing required fields |
 | One-step (validate+format) | `FieldService.autoDetectAndFormat()` | `{ validation, fields }` | Same as above | Convenience combo |
@@ -237,7 +237,7 @@ See `examples/issue-service-usage.js` for a runnable mocked example (no real net
 ### Core Formatting
 | Function | Purpose | Input | Output | Throws |
 |----------|---------|-------|--------|-------|
-| `formatValue(value, fieldType, arrayType?)` | Format a single value | Primitive / string / number | Jira-compatible value (object, primitive or null) | Invalid field type, missing array subtype, bad JSON for checklist |
+| `formatFieldValue(value, fieldType, arrayType?)` | Format a single value | Primitive / string / number | Jira-compatible value (object, primitive or null) | Invalid field type, missing array subtype, bad JSON for checklist |
 | `getFieldTypeDefinitions()` | Enumerate field type constants | – | Object map | – |
 | `validateFieldType(type)` | Check if supported | String | Boolean | – |
 | `getFieldTypeInfo(type)` | Metadata & formatting category | String | `{ fieldType, format, isArray, ... }` | Invalid type |
@@ -357,17 +357,17 @@ You can use field type strings directly as they appear in Jira, making integrati
 import { formatValue } from 'jira-field-formatter';
 
 // Use string field types directly from Jira configuration
-const result1 = formatValue('Bug', 'issuetype');          // { name: 'Bug' }
-const result2 = formatValue('High', 'priority');          // { name: 'High' }
-const result3 = formatValue('Done', 'resolution');        // { name: 'Done' }
-const result4 = formatValue('In Progress', 'status');     // { name: 'In Progress' }
-const result5 = formatValue('PROJ-123', 'issuelink');     // { key: 'PROJ-123' }
-const result6 = formatValue('2023-12-25', 'date');        // '2023-12-25'
-const result7 = formatValue('user1,user2', 'watches');    // { watchers: [{ name: 'user1' }, { name: 'user2' }] }
-const result8 = formatValue('42', 'number');              // 42
+const result1 = formatFieldValue('Bug', 'issuetype');          // { name: 'Bug' }
+const result2 = formatFieldValue('High', 'priority');          // { name: 'High' }
+const result3 = formatFieldValue('Done', 'resolution');        // { name: 'Done' }
+const result4 = formatFieldValue('In Progress', 'status');     // { name: 'In Progress' }
+const result5 = formatFieldValue('PROJ-123', 'issuelink');     // { key: 'PROJ-123' }
+const result6 = formatFieldValue('2023-12-25', 'date');        // '2023-12-25'
+const result7 = formatFieldValue('user1,user2', 'watches');    // { watchers: [{ name: 'user1' }, { name: 'user2' }] }
+const result8 = formatFieldValue('42', 'number');              // 42
 
 // Arrays with string field types
-const arrayResult = formatValue('Red,Green,Blue', 'array', 'option');
+const arrayResult = formatFieldValue('Red,Green,Blue', 'array', 'option');
 // [{ name: 'Red' }, { name: 'Green' }, { name: 'Blue' }]
 ```
 
@@ -376,7 +376,7 @@ const arrayResult = formatValue('Red,Green,Blue', 'array', 'option');
 
 ## API Reference (Selected – see Function Catalog for more)
 
-### formatValue(value, fieldType, arrayFieldType?)
+### formatFieldValue(value, fieldType, arrayFieldType?)
 
 Main formatting function that converts a value to Jira API format.
 
@@ -392,11 +392,11 @@ Main formatting function that converts a value to Jira API format.
 import { formatValue, FieldTypes } from 'jira-field-formatter';
 
 // Simple field
-const result = formatValue('Bug', FieldTypes.ISSUE_TYPE);
+const result = formatFieldValue('Bug', FieldTypes.ISSUE_TYPE);
 // { name: 'Bug' }
 
 // Array field - use any primary field type as the array item type
-const arrayResult = formatValue('Red,Green,Blue', FieldTypes.ARRAY, FieldTypes.OPTION);
+const arrayResult = formatFieldValue('Red,Green,Blue', FieldTypes.ARRAY, FieldTypes.OPTION);
 // [{ name: 'Red' }, { name: 'Green' }, { name: 'Blue' }]
 ```
 
@@ -431,7 +431,7 @@ The library automatically handles Excel-specific data formats:
 ```javascript
 // Excel stores dates as serial numbers
 const excelDate = 45290; // Represents 2023-12-25
-const result = formatValue(excelDate, FieldTypes.DATE);
+const result = formatFieldValue(excelDate, FieldTypes.DATE);
 // Returns: '2023-12-25'
 ```
 
@@ -439,7 +439,7 @@ const result = formatValue(excelDate, FieldTypes.DATE);
 ```javascript
 // Excel datetime with time portion
 const excelDateTime = 45290.5; // Date + 12:00:00
-const result = formatValue(excelDateTime, FieldTypes.DATETIME);
+const result = formatFieldValue(excelDateTime, FieldTypes.DATETIME);
 // Returns: '2023-12-25T12:00:00.000Z'
 ```
 
@@ -451,19 +451,19 @@ When using `FieldTypes.ARRAY`, specify the type of items in the array using any 
 import { formatValue, FieldTypes } from 'jira-field-formatter';
 
 // Array of options
-formatValue('Red,Green,Blue', FieldTypes.ARRAY, FieldTypes.OPTION);
+formatFieldValue('Red,Green,Blue', FieldTypes.ARRAY, FieldTypes.OPTION);
 // [{ name: 'Red' }, { name: 'Green' }, { name: 'Blue' }]
 
 // Array of strings
-formatValue('Item1,Item2,Item3', FieldTypes.ARRAY, FieldTypes.STRING);
+formatFieldValue('Item1,Item2,Item3', FieldTypes.ARRAY, FieldTypes.STRING);
 // ['Item1', 'Item2', 'Item3']
 
 // Array of versions
-formatValue('1.0,2.0,3.0', FieldTypes.ARRAY, FieldTypes.VERSION);
+formatFieldValue('1.0,2.0,3.0', FieldTypes.ARRAY, FieldTypes.VERSION);
 // [{ name: '1.0' }, { name: '2.0' }, { name: '3.0' }]
 
 // Array of users
-formatValue('john.doe,jane.smith', FieldTypes.ARRAY, FieldTypes.USER);
+formatFieldValue('john.doe,jane.smith', FieldTypes.ARRAY, FieldTypes.USER);
 // [{ name: 'john.doe' }, { name: 'jane.smith' }]
 ```
 
@@ -472,17 +472,17 @@ formatValue('john.doe,jane.smith', FieldTypes.ARRAY, FieldTypes.USER);
 ### Cascading Select (Option with Child)
 ```javascript
 // Parent and child option
-formatValue('Hardware -> Laptop', FieldTypes.OPTION_WITH_CHILD);
+formatFieldValue('Hardware -> Laptop', FieldTypes.OPTION_WITH_CHILD);
 // { value: 'Hardware', child: { value: 'Laptop' } }
 
 // Parent only
-formatValue('Software', FieldTypes.OPTION_WITH_CHILD);
+formatFieldValue('Software', FieldTypes.OPTION_WITH_CHILD);
 // { value: 'Software' }
 ```
 
 ### Time Tracking
 ```javascript
-formatValue('2w 3d 4h 30m', FieldTypes.TIME_TRACKING);
+formatFieldValue('2w 3d 4h 30m', FieldTypes.TIME_TRACKING);
 // { originalEstimate: '2w 3d 4h 30m' }
 ```
 
@@ -492,13 +492,13 @@ The library provides comprehensive error handling:
 
 ```javascript
 try {
-  const result = formatValue('test', 'invalid-field-type');
+  const result = formatFieldValue('test', 'invalid-field-type');
 } catch (error) {
   console.error(error.message); // 'Invalid field type: invalid-field-type'
 }
 
 try {
-  const result = formatValue('test', FieldTypes.ARRAY); // Missing arrayFieldType
+  const result = formatFieldValue('test', FieldTypes.ARRAY); // Missing arrayFieldType
 } catch (error) {
   console.error(error.message); // 'Array field type is required when fieldType is "array"'
 }
@@ -545,7 +545,7 @@ The library includes TypeScript definitions (coming soon):
 ```typescript
 import { formatValue, FieldTypes } from 'jira-field-formatter';
 
-const result: any = formatValue('Bug', FieldTypes.ISSUE_TYPE);
+const result: any = formatFieldValue('Bug', FieldTypes.ISSUE_TYPE);
 ```
 
 ## Contributing

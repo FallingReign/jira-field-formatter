@@ -3,17 +3,20 @@
  * A standalone Node.js library for formatting field values to be compatible with the Jira REST API
  */
 
-// Main exports (domain-owned implementations consolidated in Phase 3e/3f)
+// Main exports (v3.0.0) – consolidated domain symbols
 export {
-  formatValue,
-  getFieldTypeDefinitions,
-  validateFieldType,
-  getFieldTypeInfo,
   FieldTypes,
   ARRAY_ITEM_TYPES,
+  NAME_FORMAT_TYPES,
+  KEY_FORMAT_TYPES,
+  DATE_TIME_TYPES,
   isValidFieldType,
   isValidArrayFieldType,
-  getFieldFormat
+  getFieldFormat,
+  formatFieldValue,
+  getFieldTypeDefinitions,
+  validateFieldType,
+  getFieldTypeInfo
 } from './src/domain/index.js';
 
 // Utility functions
@@ -68,4 +71,4 @@ export {
 // Removed deprecated JiraApi & JiraHttpClient in v2.0.0 (use JiraApiClient + specific APIs)
 
 // Default export for convenience
-export { formatValue as default } from './src/domain/index.js';
+// No default export in v3.0.0 (breaking): consumers must use named exports.

@@ -2,8 +2,8 @@
  * Validation utilities for Jira field formatting
  */
 
-// Using domain-owned field type taxonomy (Phase 3e consolidation)
-import { isValidFieldType, isValidArrayFieldType } from '../domain/fieldTypes.js';
+// Using domain-owned field type taxonomy (v3.0.0 consolidated in Field.js)
+import { isValidFieldType, isValidArrayFieldType } from '../domain/Field.js';
 
 /**
  * Check if a value is empty (null, undefined, or empty string)
