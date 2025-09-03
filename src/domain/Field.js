@@ -211,6 +211,11 @@ export function mapSchemaToFieldType(schema) {
   // Option / select patterns
   if (type === 'option') return { fieldType: FieldTypes.OPTION };
 
+  // Jira-specific field types
+  if (type === 'priority') return { fieldType: FieldTypes.PRIORITY };
+  if (type === 'version') return { fieldType: FieldTypes.VERSION };
+  if (type === 'component') return { fieldType: FieldTypes.COMPONENT };
+
   // Complex with custom identifier (cascading select, etc.)
   if (custom && typeof custom === 'string') {
     if (custom.includes('cascadingselect')) {
@@ -224,23 +229,64 @@ export function mapSchemaToFieldType(schema) {
     }
   }
 
-  // Arrays – map item type recursively
+  // Arrays – handle both object and primitive item types (Jira Server vs Cloud compatibility)
   if (type === 'array') {
-    // items may be primitive or object with type/custom
     if (!items) {
       throw new Error('Array schema missing items definition');
     }
-    let itemMap;
-    try {
-      itemMap = mapSchemaToFieldType({ schema: items });
-    } catch (e) {
-      throw new Error(`Failed to map array item schema: ${e.message}`);
+    
+    let arrayItemType;
+    
+    // Handle primitive item types (Jira Server format: items: "string")
+    if (typeof items === 'string') {
+      arrayItemType = mapPrimitiveItemType(items);
+    } 
+    // Handle object item types (Jira Cloud format: items: {type: "string"})
+    else if (typeof items === 'object') {
+      const itemMap = mapSchemaToFieldType({ schema: items });
+      arrayItemType = itemMap.fieldType;
+    } else {
+      throw new Error(`Invalid array items type: ${typeof items}`);
     }
-    return { fieldType: FieldTypes.ARRAY, arrayItemType: itemMap.fieldType };
+    
+    return { fieldType: FieldTypes.ARRAY, arrayItemType };
   }
 
   // Fallback – raise explicit error for visibility
   throw new Error(`Unsupported schema mapping (type=${type}, custom=${custom || 'n/a'})`);
+}
+
+/**
+ * Map Jira primitive item type strings to our FieldTypes
+ * @param {string} primitiveType - Jira primitive type (e.g., "string", "version")
+ * @returns {string} Corresponding FieldType constant
+ */
+function mapPrimitiveItemType(primitiveType) {
+  // Map Jira primitive type strings to our FieldTypes
+  const primitiveTypeMap = {
+    'string': FieldTypes.STRING,
+    'number': FieldTypes.NUMBER,
+    'date': FieldTypes.DATE,
+    'datetime': FieldTypes.DATETIME,
+    'version': FieldTypes.VERSION,
+    'component': FieldTypes.COMPONENT,
+    'option': FieldTypes.OPTION,
+    'user': FieldTypes.USER,
+    'priority': FieldTypes.PRIORITY,
+    'resolution': FieldTypes.RESOLUTION,
+    'status': FieldTypes.STATUS,
+    'project': FieldTypes.PROJECT,
+    'issuetype': FieldTypes.ISSUE_TYPE,
+    'issuelink': FieldTypes.ISSUE_LINK
+  };
+  
+  const mappedType = primitiveTypeMap[primitiveType];
+  if (!mappedType) {
+    console.warn(`[Schema] Unknown primitive array item type: ${primitiveType}, defaulting to ANY`);
+    return FieldTypes.ANY;
+  }
+  
+  return mappedType;
 }
 
 /**
