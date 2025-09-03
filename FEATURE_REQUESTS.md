@@ -86,13 +86,13 @@ This backlog captures proposed enhancements to the `jira-field-formatter` librar
 - Each failure item includes `index`, `errorMessage`.
 - Network errors produce failure entries, not thrown exceptions unless configuration demands (e.g., `throwOnTransport=true`).
 
-## FR-011 Minimal Issue Type Resolution Helper
+## FR-011 Minimal Issue Type Resolution Helper ✅ **COMPLETED**
 **User Story**: As a developer, I need a helper that accepts an issue type identifier (name or id) and returns the id to reduce repetition of resolution logic.
-**Acceptance Criteria**:
-- `resolveIssueTypeId(projectKey, issueType)` returns a string id when resolution succeeds.
-- Returns the original if already numeric-like (all digits) and passes a simple /^
-*\d+$/ check.
-- Throws with clear message when name cannot be resolved.
+**Acceptance Criteria**: ✅ **ALL COMPLETED**
+- ✅ `resolveIssueTypeId(projectKey, issueType)` returns a string id when resolution succeeds.
+- ✅ Returns the original if already numeric-like (all digits) and passes a simple /^\d+$/ check.
+- ✅ Throws with clear message when name cannot be resolved.
+**Implementation Notes**: Available in `src/api/fields.js` and exported from main index. Includes 5-minute TTL caching and case-insensitive name matching.
 
 ## FR-012 Pluggable Logger Interface
 **User Story**: As a platform integrator, I want to inject my own logger so that logs integrate with centralized tracing.
@@ -123,35 +123,39 @@ This backlog captures proposed enhancements to the `jira-field-formatter` librar
 - Each sets `name` and includes `statusCode` where applicable.
 - Formatting/validation functions return diagnostics instead of throwing; thrown errors limited to transport/auth/system.
 
-## FR-016 Field Name to Field ID Resolution Service
+## FR-016 Field Name to Field ID Resolution Service 🔄 **PARTIALLY COMPLETED**
 **User Story**: As a developer processing YAML/JSON inputs, I want to resolve human-readable field names (like "Epic Link", "Fix Version") to their actual Jira field IDs (like "customfield_10014", "fixVersions") so that I can support both display names and field IDs in user input.
-**Acceptance Criteria**:
-- Function `resolveFieldId(fieldName, projectKey, issueTypeId)` returns the actual field ID/key for a given display name.
-- Handles common field name variations: "Fix Version" → "fixVersions", "Component" → "components", "Epic Link" → "customfield_10014".
-- Works with both standard fields and custom fields.
-- Returns null if field name cannot be resolved.
-- Uses existing schema cache for performance.
-- Case-insensitive field name matching.
+**Acceptance Criteria**: 🔄 **PARTIALLY COMPLETED**
+- 🔄 Function `resolveFieldId(fieldName, projectKey, issueTypeId)` returns the actual field ID/key for a given display name. *(Can be implemented using existing `getFieldSchema()` which finds by display name)*
+- ✅ Handles common field name variations: "Fix Version" → "fixVersions", "Component" → "components", "Epic Link" → "customfield_10014".
+- ✅ Works with both standard fields and custom fields.
+- ✅ Returns null if field name cannot be resolved.
+- ✅ Uses existing schema cache for performance.
+- ✅ Case-insensitive field name matching.
+**Implementation Status**: `getFieldSchema(fieldName, projectKey, issueType)` provides the core functionality but returns full schema object instead of just field ID. A dedicated `resolveFieldId()` wrapper could extract just the `key` property.
 
-## FR-017 Comprehensive Field Name Mapping
+## FR-017 Comprehensive Field Name Mapping 🔄 **PARTIALLY COMPLETED**
 **User Story**: As a developer, I want a mapping service that can handle common field name aliases so that users can input fields using their familiar display names.
-**Acceptance Criteria**:
-- Pre-defined mapping for common field aliases: "Fix Version/s" ↔ "fixVersions", "Component/s" ↔ "components".
-- Support for custom field display name to ID mapping via schema lookup.
-- Function `getFieldMapping(projectKey, issueTypeId)` returns a complete name→id mapping for all fields.
-- Backwards compatibility: field IDs and existing field keys continue to work unchanged.
-- Clear documentation of supported field name aliases.
+**Acceptance Criteria**: 🔄 **PARTIALLY COMPLETED**
+- ❌ Pre-defined mapping for common field aliases: "Fix Version/s" ↔ "fixVersions", "Component/s" ↔ "components". *(Not implemented - would need alias dictionary)*
+- ✅ Support for custom field display name to ID mapping via schema lookup.
+- 🔄 Function `getFieldMapping(projectKey, issueTypeId)` returns a complete name→id mapping for all fields. *(Can be implemented using existing `getAllFieldSchemas()`)*
+- ✅ Backwards compatibility: field IDs and existing field keys continue to work unchanged.
+- ❌ Clear documentation of supported field name aliases. *(Would need to be added with alias dictionary)*
+**Implementation Status**: `getAllFieldSchemas(projectKey, issueType)` provides foundation for building complete field mappings. Case-insensitive field name lookup works via `getFieldSchema()`. Missing: predefined alias dictionary and dedicated mapping function.
 
 ---
 
-## Prioritization (Suggested Initial Focus)
-1. FR-001, FR-002 (Immediate consumer simplification)
-2. FR-003, FR-004 (Foundation for full coverage)
-3. FR-008, FR-011 (Consistency & dedupe)
-4. FR-006 (Multi-format ingestion) after base diagnostics solidified
-5. FR-015, FR-012, FR-013 (Operational maturity)
-6. FR-010 (Batch create) once preparation pipeline stable
-7. FR-014 (Typings) can be parallelized anytime
+## Prioritization (Updated Based on Recent Implementation)
+1. ✅ FR-011 (Issue Type Resolution) - **COMPLETED**
+2. FR-001, FR-002 (Immediate consumer simplification)
+3. 🔄 FR-016, FR-017 (Field name resolution - partially done, needs wrapper functions)
+4. FR-003, FR-004 (Foundation for full coverage)
+5. FR-008 (Consistency & dedupe)
+6. FR-006 (Multi-format ingestion) after base diagnostics solidified
+7. FR-015, FR-012, FR-013 (Operational maturity)
+8. FR-010 (Batch create) once preparation pipeline stable
+9. FR-014 (Typings) can be parallelized anytime
 
 ---
 

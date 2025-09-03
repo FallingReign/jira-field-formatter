@@ -1,104 +1,51 @@
 # Jira Field Formatter
 
-A focused Jira integration utility that converts raw input (including Excel serials) into Jira REST API–compatible payloads and now (Phase 3 architecture) offers domain + service + orchestration layers for full issue creation workflows.
+Convert your data into the exact format Jira expects. Handles Excel dates, arrays, user fields, and all Jira field types automatically.
 
-**🔧 Designed for Git Submodules** – Drop into any project without publishing to npm.
+[![npm version](https://img.shields.io/badge/version-3.0.0-blue)](https://github.com/FallingReign/jira-field-formatter)
 
-## At a Glance
+## What do you need to do?
 
-| Need | Start Here | Key Methods | Side Effects | When to Choose |
-|------|------------|-------------|--------------|----------------|
-| Format a single known field | `formatFieldValue` | `formatFieldValue()` | None | Quick, explicit field type known |
-| Bulk format & validate against Jira schemas | `FieldService` | `formatInputPayload()`, `validateInputPayload()` | Fetch createmeta | Dynamic field sets, schema-driven |
-| Full issue lifecycle (format → prepare → create) | `IssueService` | `format()`, `validate()`, `prepare()`, `create()` | Fetch + (optional) create | Clear stage boundaries |
-| Functional wrappers for orchestration | Helpers | `formatIssueFields()`, `validateIssueFields()`, `createIssue()` | Same as above | Prefer functions over classes |
-| Raw HTTP operations | `JiraApiClient` + *Apis | `get()`, `post()` | Network | Custom / advanced workflows |
+| **I want to...** | **Use this** | **Example** |
+|------------------|--------------|-------------|
+| Format a single field quickly | `formatFieldValue()` | `formatFieldValue('Bug', 'issuetype')` |
+| Format multiple fields at once | `FieldService.formatInputPayload()` | Bulk convert spreadsheet data |
+| Create a complete Jira issue | `IssueService` | Full workflow from data to issue |
 
-> v3.0.0 Breaking: Procedural `formatValue` removed. Use `formatFieldValue` (new name) or higher-level abstractions (`Field`, `FieldService`, `IssueService`).
+## Quick Examples
 
-## Features
+```javascript
+import { formatFieldValue, FieldService, IssueService } from 'jira-field-formatter';
 
-- ✅ **Full Field Type Coverage** – Jira system + array, cascading select, timetracking, watches, Service Desk fields
-- ✅ **Excel Aware** – Date & datetime serial number parsing
-- ✅ **Domain Layer** – `Field` encapsulates schema mapping & per-field behavior
-- ✅ **Service Layer** – `FieldService` caches schemas & performs bulk formatting / validation
-- ✅ **Orchestration Layer** – `IssueService` provides single-purpose workflow steps
-- ✅ **Schema Caching** – In-memory TTL (default 300s) reduces createmeta calls
-- ✅ **Functional Helpers** – Pure functions wrapping orchestration for functional style
-- ✅ **ESM Only** – Modern module system
-- ✅ **Minimal Runtime Dependency** – Only `dotenv` for self-contained env loading
-## Requirements
+// ✅ Format one field
+const issueType = formatFieldValue('Bug', 'issuetype');
+// Returns: { name: 'Bug' }
 
-- **Node.js 18+** – Required (uses native `fetch`). If using earlier Node versions you must polyfill; official support targets 18+.
-- **Jira Cloud / Data Center REST API** – Supply credentials via environment variables.
+// ✅ Format Excel date
+const dueDate = formatFieldValue(45290, 'date'); // Excel serial number
+// Returns: '2023-12-25'
 
-### Environment Variables (Required for API usage)
-
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `JIRA_BASE_URL` | Yes | — | Base Jira URL (e.g. `https://your-domain.atlassian.net`) |
-| `JIRA_API_VERSION` | Yes | — | REST API version segment (e.g. `3`) |
-| `JIRA_TOKEN` | Yes | — | Jira personal access (Bearer) token |
-| `JIRA_SCHEMA_CACHE_TTL` | No | `300` | Seconds to cache field schemas (createmeta) |
-
-`.env.example` illustrates expected keys. Never commit your real `.env`.
-
-> **Note:** This library is ESM-only and does not support CommonJS. If you need CommonJS support, consider upgrading your project to ES modules or using dynamic imports: `const { formatValue } = await import('./path/to/jira-field-formatter/index.js')`
+// ✅ Format array (comma-separated)
+const labels = formatFieldValue('urgent,bug,frontend', 'array', 'string');
+// Returns: ['urgent', 'bug', 'frontend']
+```
 
 ## Installation
 
 ### Git Submodule (Recommended)
-
-Add this library as a git submodule to your project:
-
 ```bash
-# Add the submodule (gets latest development version)
 git submodule add https://github.com/FallingReign/jira-field-formatter.git lib/jira-field-formatter
-
-# For production: pin to a specific stable version
-cd lib/jira-field-formatter
-git checkout v1.2.0  # Replace with desired version
-cd ../..
-
-# Commit the submodule
-git add .gitmodules lib/jira-field-formatter
-git commit -m "Add jira-field-formatter submodule (v1.2.0)"
-
-# Initialize for team members
-git submodule update --init --recursive
+cd lib/jira-field-formatter && git checkout v3.0.0 && cd ../..
+git add . && git commit -m "Add jira-field-formatter submodule"
 ```
 
-### Available Versions
-| Tag | Status | Notes |
-|-----|--------|-------|
-| `v2.2.1` | Current | Deprecation hardened warning for procedural formatValue |
-| `v2.2.0` | Stable | Domain unified exports, stronger deprecation path |
-| `v2.1.0` | Stable | Domain consolidation, shims introduced |
-| `v2.0.0` | Breaking | Removed deprecated JiraApi/JiraHttpClient |
-| `v1.2.0` | Legacy | Pre-domain/service orchestration baseline |
-| `master` | Active Dev | Latest (potentially unstable) features – do not pin for prod |
-
-> Until the next tag (e.g. `v1.3.0`) is cut, new orchestration features live on `master`.
-
-Then import it in your project:
-
+### Import in your code
 ```javascript
-// ES Modules (Required - Node.js 14+)
-import { formatValue, FieldTypes } from './lib/jira-field-formatter/index.js';
-
-// Or for specific utilities
-import { formatDateValue } from './lib/jira-field-formatter/src/utils/dateUtils.js';
+import { formatFieldValue, FieldService, IssueService } from './lib/jira-field-formatter/index.js';
 ```
 
-### Alternative: Direct Clone
-
-```bash
-# Clone the repository
-git clone https://github.com/FallingReign/jira-field-formatter.git
-
-# Include in your project
+> **Requirements:** Node.js 14+ with ES modules support
 import { formatValue } from './jira-field-formatter/index.js';
-```
 
 ## 🔧 Submodule Management
 
@@ -169,6 +116,48 @@ const dateField = formatFieldValue('2023-12-25', 'date');
 const arrayField = formatFieldValue('Option1,Option2,Option3', 'array', 'option');
 // Returns: [{ name: 'Option1' }, { name: 'Option2' }, { name: 'Option3' }]
 ```
+
+## 🏷️ Issue Type Resolution
+
+No more dealing with cryptic issue type IDs! Use natural issue type names throughout the library:
+
+```javascript
+import { FieldsApi, resolveIssueTypeId } from 'jira-field-formatter';
+
+const fieldsApi = new FieldsApi();
+
+// ✅ NEW: Use issue type names directly
+const taskFields = await fieldsApi.getAllFieldSchemas('PROJ', 'Task');
+const bugSchema = await fieldsApi.getFieldSchema('Priority', 'PROJ', 'Bug');
+
+// ✅ Still works: Use issue type IDs
+const epicFields = await fieldsApi.getAllFieldSchemas('PROJ', '10000');
+
+// ✅ Direct resolution
+const taskId = await fieldsApi.resolveIssueTypeId('Task', 'PROJ');
+// Returns: "10200"
+
+// ✅ Standalone helper
+const bugId = await resolveIssueTypeId('Bug', 'PROJ');
+// Returns: "10203"
+```
+
+### Issue Type Resolution Features:
+
+- **🎯 Natural Names**: Use `"Task"`, `"Bug"`, `"Epic"` instead of `"10200"`, `"10203"`, `"10000"`
+- **🔄 Backward Compatible**: Existing code using IDs continues to work unchanged
+- **⚡ Cached**: Issue type mappings cached for 5 minutes per project
+- **🛡️ Error Handling**: Clear error messages list available issue types
+- **🔍 Auto-Detection**: Numeric IDs passed through directly for performance
+
+### Supported Methods:
+All field-related methods now accept issue type names:
+
+- `fieldsApi.getFieldSchema(fieldName, projectKey, issueType)`
+- `fieldsApi.getAllFieldSchemas(projectKey, issueType)`
+- `fieldsApi.isFieldPresent(fieldName, projectKey, issueType)`
+- `fieldService.formatInputPayload(rawInput, projectKey, issueType)`
+- `fieldService.validateInputPayload(rawInput, projectKey, issueType)`
 
 ## 🧠 Issue Orchestration (IssueService)
 
@@ -266,8 +255,13 @@ See `examples/issue-service-usage.js` for a runnable mocked example (no real net
 |-------|---------|--------------|
 | `JiraApiClient` | Low-level HTTP (auth, fetch) | `get()`, `post()`, `getEndpoint()`, `getBaseURL()` |
 | `IssuesApi` | Issue REST endpoints | `createIssue()`, `getIssueTypeIdByName()` |
-| `FieldsApi` | Field schema endpoints | `getAllFieldSchemas()`, `getFieldSchema()`, `isFieldPresent()` |
+| `FieldsApi` | Field schema endpoints | `getAllFieldSchemas()`, `getFieldSchema()`, `isFieldPresent()`, `resolveIssueTypeId()` |
 | `UsersApi` | User lookups | `findUser()` |
+
+### Issue Type Resolution
+| Function | Purpose | Input | Output |
+|----------|---------|-------|--------|
+| `resolveIssueTypeId(issueType, projectKey, logger?)` | Convert issue type name to ID | Name or ID + project | Issue type ID string |
 
 ### Utilities (Selected)
 | Function | Purpose |
@@ -349,253 +343,103 @@ Migration Tip: Start by replacing procedural multi-field loops with `FieldServic
 - **Time Tracking** (`timetracking`) - Time estimates: `"2w 3d 4h 30m"`
 - **Array** (`array`) - Arrays of any supported type
 
-## Using Field Type Strings
+## Creating Complete Jira Issues
 
-You can use field type strings directly as they appear in Jira, making integration easier:
+For full issue creation workflow:
 
 ```javascript
-import { formatValue } from 'jira-field-formatter';
+import { IssueService, FieldService } from 'jira-field-formatter';
 
-// Use string field types directly from Jira configuration
-const result1 = formatFieldValue('Bug', 'issuetype');          // { name: 'Bug' }
-const result2 = formatFieldValue('High', 'priority');          // { name: 'High' }
-const result3 = formatFieldValue('Done', 'resolution');        // { name: 'Done' }
-const result4 = formatFieldValue('In Progress', 'status');     // { name: 'In Progress' }
-const result5 = formatFieldValue('PROJ-123', 'issuelink');     // { key: 'PROJ-123' }
-const result6 = formatFieldValue('2023-12-25', 'date');        // '2023-12-25'
-const result7 = formatFieldValue('user1,user2', 'watches');    // { watchers: [{ name: 'user1' }, { name: 'user2' }] }
-const result8 = formatFieldValue('42', 'number');              // 42
+// Set up environment variables first:
+// JIRA_BASE_URL=https://your-domain.atlassian.net
+// JIRA_API_VERSION=3
+// JIRA_TOKEN=your-token
 
-// Arrays with string field types
-const arrayResult = formatFieldValue('Red,Green,Blue', 'array', 'option');
-// [{ name: 'Red' }, { name: 'Green' }, { name: 'Blue' }]
+const fieldService = new FieldService();
+const issueService = new IssueService({ fieldService });
+
+// Your data from any source
+const issueData = {
+  summary: 'Fix login bug',
+  'Issue Type': 'Bug',
+  'Priority': 'High',
+  'Assignee': 'john.doe',
+  'Labels': 'urgent,bug,frontend',
+  'Due Date': 45290  // Excel date
+};
+
+// 1. Format the data
+const formatted = await issueService.format(issueData, 'MY-PROJECT', 'Bug');
+
+// 2. Create the issue
+const result = await issueService.create(formatted.fields);
+if (result.success) {
+  console.log(`Created issue: ${result.key}`);
+}
 ```
 
-**Supported field type strings:**
-`timetracking`, `issuetype`, `string`, `priority`, `resolution`, `status`, `securitylevel`, `watches`, `any`, `array`, `option-with-child`, `user`, `option`, `date`, `project`, `number`, `datetime`, `issuelink`, `version`, `attachment`, `issuelinks`, `component`, `sd-servicelevelagreement`, `sd-approvals`, `sd-customerrequesttype`, `checklist-item`
+## Environment Setup
 
-## API Reference (Selected – see Function Catalog for more)
+For API operations (FieldService, IssueService), create a `.env` file:
 
-### formatFieldValue(value, fieldType, arrayFieldType?)
-
-Main formatting function that converts a value to Jira API format.
-
-**Parameters:**
-- `value` (any) - The value to format
-- `fieldType` (string) - The Jira field type
-- `arrayFieldType` (string, optional) - Required when fieldType is 'array'
-
-**Returns:** Formatted value ready for Jira API
-
-**Example:**
-```javascript
-import { formatValue, FieldTypes } from 'jira-field-formatter';
-
-// Simple field
-const result = formatFieldValue('Bug', FieldTypes.ISSUE_TYPE);
-// { name: 'Bug' }
-
-// Array field - use any primary field type as the array item type
-const arrayResult = formatFieldValue('Red,Green,Blue', FieldTypes.ARRAY, FieldTypes.OPTION);
-// [{ name: 'Red' }, { name: 'Green' }, { name: 'Blue' }]
+```bash
+JIRA_BASE_URL=https://your-domain.atlassian.net
+JIRA_API_VERSION=3
+JIRA_TOKEN=your-personal-access-token
 ```
 
-### getFieldTypeDefinitions()
+## All Supported Field Types
 
-Returns all available field type constants.
+| **Field Type** | **Example Input** | **Jira Output** |
+|----------------|------------------|-----------------|
+| `string` | `"Hello World"` | `"Hello World"` |
+| `number` | `"42"` | `42` |
+| `date` | `45290` (Excel) or `"2023-12-25"` | `"2023-12-25"` |
+| `datetime` | `"2023-12-25T10:30:00Z"` | `"2023-12-25T10:30:00.000Z"` |
+| `issuetype` | `"Bug"` | `{ name: "Bug" }` |
+| `priority` | `"High"` | `{ name: "High" }` |
+| `assignee` | `"john.doe"` | `{ name: "john.doe" }` |
+| `user` | `"jane.smith"` | `{ name: "jane.smith" }` |
+| `project` | `"PROJ"` | `{ key: "PROJ" }` |
+| `component` | `"Frontend"` | `{ name: "Frontend" }` |
+| `version` | `"1.0.0"` | `{ name: "1.0.0" }` |
+| `option` | `"Option A"` | `{ name: "Option A" }` |
+| `timetracking` | `"2w 3d 4h 30m"` | `{ originalEstimate: "2w 3d 4h 30m" }` |
+| `array` + subtype | `"Red,Green,Blue"` | Array of formatted values |
 
+### Array Examples
 ```javascript
-import { getFieldTypeDefinitions } from 'jira-field-formatter';
-
-const fieldTypes = getFieldTypeDefinitions();
-console.log(fieldTypes.STRING); // 'string'
-console.log(fieldTypes.ARRAY); // 'array'
-```
-
-### validateFieldType(fieldType)
-
-Validates if a field type is supported.
-
-```javascript
-import { validateFieldType } from 'jira-field-formatter';
-
-console.log(validateFieldType('string')); // true
-console.log(validateFieldType('invalid')); // false
-```
-
-## Excel Integration
-
-The library automatically handles Excel-specific data formats:
-
-### Excel Date Serial Numbers
-```javascript
-// Excel stores dates as serial numbers
-const excelDate = 45290; // Represents 2023-12-25
-const result = formatFieldValue(excelDate, FieldTypes.DATE);
-// Returns: '2023-12-25'
-```
-
-### Excel DateTime with Decimal
-```javascript
-// Excel datetime with time portion
-const excelDateTime = 45290.5; // Date + 12:00:00
-const result = formatFieldValue(excelDateTime, FieldTypes.DATETIME);
-// Returns: '2023-12-25T12:00:00.000Z'
-```
-
-## Array Field Types
-
-When using `FieldTypes.ARRAY`, specify the type of items in the array using any of the primary field types:
-
-```javascript
-import { formatValue, FieldTypes } from 'jira-field-formatter';
-
-// Array of options
-formatFieldValue('Red,Green,Blue', FieldTypes.ARRAY, FieldTypes.OPTION);
-// [{ name: 'Red' }, { name: 'Green' }, { name: 'Blue' }]
-
 // Array of strings
-formatFieldValue('Item1,Item2,Item3', FieldTypes.ARRAY, FieldTypes.STRING);
-// ['Item1', 'Item2', 'Item3']
+formatFieldValue('tag1,tag2,tag3', 'array', 'string')
+// Returns: ['tag1', 'tag2', 'tag3']
 
-// Array of versions
-formatFieldValue('1.0,2.0,3.0', FieldTypes.ARRAY, FieldTypes.VERSION);
-// [{ name: '1.0' }, { name: '2.0' }, { name: '3.0' }]
+// Array of components  
+formatFieldValue('Frontend,Backend', 'array', 'component')
+// Returns: [{ name: 'Frontend' }, { name: 'Backend' }]
 
 // Array of users
-formatFieldValue('john.doe,jane.smith', FieldTypes.ARRAY, FieldTypes.USER);
-// [{ name: 'john.doe' }, { name: 'jane.smith' }]
+formatFieldValue('john,jane,bob', 'array', 'user')  
+// Returns: [{ name: 'john' }, { name: 'jane' }, { name: 'bob' }]
 ```
 
-## Special Field Formats
-
-### Cascading Select (Option with Child)
-```javascript
-// Parent and child option
-formatFieldValue('Hardware -> Laptop', FieldTypes.OPTION_WITH_CHILD);
-// { value: 'Hardware', child: { value: 'Laptop' } }
-
-// Parent only
-formatFieldValue('Software', FieldTypes.OPTION_WITH_CHILD);
-// { value: 'Software' }
-```
-
-### Time Tracking
-```javascript
-formatFieldValue('2w 3d 4h 30m', FieldTypes.TIME_TRACKING);
-// { originalEstimate: '2w 3d 4h 30m' }
-```
-
-## Error Handling (Procedural)
-
-The library provides comprehensive error handling:
+## Error Handling
 
 ```javascript
 try {
-  const result = formatFieldValue('test', 'invalid-field-type');
+  const result = formatFieldValue('test', 'invalid-type');
 } catch (error) {
-  console.error(error.message); // 'Invalid field type: invalid-field-type'
+  console.log('Invalid field type:', error.message);
 }
 
-try {
-  const result = formatFieldValue('test', FieldTypes.ARRAY); // Missing arrayFieldType
-} catch (error) {
-  console.error(error.message); // 'Array field type is required when fieldType is "array"'
-}
-```
-
-## Utility Functions
-
-### Date Utilities
-```javascript
-import { formatDateValue, formatDateTimeValue } from 'jira-field-formatter';
-
-const date = formatDateValue('12/25/2023');
-const datetime = formatDateTimeValue('2023-12-25T10:30:00');
-```
-
-### Time Utilities
-```javascript
-import { parseTimeTracking, isValidTimeTrackingFormat } from 'jira-field-formatter';
-
-const timeTracking = parseTimeTracking('2w 3d 4h 30m');
-const isValid = isValidTimeTrackingFormat('1h 30m');
-```
-
-### Validation Utilities
-```javascript
-import { isEmpty, isJiraKey, validateFieldTypes } from 'jira-field-formatter';
-
-const empty = isEmpty('   '); // true
-const jiraKey = isJiraKey('PROJ-123'); // true
-const validation = validateFieldTypes('array', 'option'); // { isValid: true }
-```
-
-## TypeScript Support / Roadmap
-
-Currently untyped JavaScript. Planned minimal `.d.ts` surfaces (ETA Phase 3e or later):
-1. Core formatting (`formatValue`, field type enums)
-2. Domain & Services interfaces (Field, FieldService, IssueService result shapes)
-3. Helper function result types
-
-Interim: You can author local ambient declarations to wrap Create / Format / Validation result shapes.
-
-The library includes TypeScript definitions (coming soon):
-
-```typescript
-import { formatValue, FieldTypes } from 'jira-field-formatter';
-
-const result: any = formatFieldValue('Bug', FieldTypes.ISSUE_TYPE);
+// For bulk operations, errors are collected, not thrown
+const result = await fieldService.formatInputPayload(data, 'PROJ', 'Bug');
+console.log(result.diagnostics.unknownFields); // Shows unrecognized fields
 ```
 
 ## Contributing
 
-Contributions are welcome! Please read our contributing guidelines and submit pull requests to our GitHub repository.
+Found a bug or want to add a field type? [Open an issue](https://github.com/FallingReign/jira-field-formatter/issues) or submit a pull request.
 
 ## License
 
-MIT License - see LICENSE file for details.
-
-## Changelog
-
-### v2.2.0
-- Deprecation hardening: root exports unified under domain; structured warning for `formatValue`; added suppression flag docs.
-
-### v2.1.0
-- Internal consolidation: single source of truth for field types & formatter in domain layer; shims introduced.
-
-### v2.0.0
-- BREAKING: Removed deprecated wrappers `JiraApi` and `JiraHttpClient` (use `JiraApiClient`, `UsersApi`, `IssuesApi`, `FieldsApi`).
-- Added Domain + Service + Orchestration layers: `Field`, `FieldService`, `IssueService`.
-- Added helper functions: `formatIssueFields`, `validateIssueFields`, `createIssue`.
-- Introduced schema caching (TTL via `JIRA_SCHEMA_CACHE_TTL`).
-- Added soft deprecation warning for procedural `formatValue` on first invocation.
-- Added examples: `issue-service-usage.js`.
-- Raised documented Node requirement to 18+ (native fetch).
-
-### v1.2.0
-- ✨ **New Field Types**: Added commonly requested field types:
-  - `resolution` - Issue resolution values
-  - `status` - Issue status values  
-  - `securitylevel` - Security level restrictions
-  - `watches` - Watchers (supports comma-separated user lists)
-  - `sd-servicelevelagreement` - Service Desk SLA agreements
-  - `sd-approvals` - Service Desk approval workflows
-  - `sd-customerrequesttype` - Service Desk request types
-- 🔧 **Special Handling**: Watches field returns `{watchers: []}` for empty values instead of `null`
-- 📝 **Documentation**: Updated examples to showcase all new field types
-- ✅ **Tests**: Added comprehensive test coverage for all new field types (64 total tests)
-
-### v1.1.0
-- ✨ **New Feature**: Support for direct string field types (e.g., `'issuetype'`, `'priority'`)
-- ✨ **New Field Types**: Added `attachment` and `issuelinks` field types
-- 🐛 **Fix**: Improved time tracking parsing to handle any string value
-- 📝 **Documentation**: Updated examples and API documentation
-- ✅ **Tests**: Enhanced test coverage for string field types
-
-### v1.0.0
-- Initial release
-- Support for all Jira field types
-- Excel integration
-- Comprehensive test coverage
-- Zero dependencies
+MIT License

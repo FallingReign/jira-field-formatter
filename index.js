@@ -46,7 +46,8 @@ export {
   JiraApiClient,
   UsersApi,
   IssuesApi,
-  FieldsApi
+  FieldsApi,
+  resolveIssueTypeId
 } from './src/api/index.js';
 
 // Domain exports (Phase 3b)
