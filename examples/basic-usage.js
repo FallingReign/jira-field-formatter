@@ -2,79 +2,41 @@
  * Examples of using the Jira Field Formatter library
  */
 
-import { formatFieldValue, FieldTypes } from '../index.js';
+import { Fields, Issues } from '../index.js';
 
-console.log('🚀 Jira Field Formatter Examples\n');
+console.log('🚀 Jira Field Formatter (Facade) Examples\n');
 
-// Basic field types
-console.log('📝 Basic Field Types:');
-console.log('Issue Type (constant):', formatFieldValue('Bug', FieldTypes.ISSUE_TYPE));
-console.log('Issue Type (string):', formatFieldValue('Bug', 'issuetype'));
-console.log('Priority (constant):', formatFieldValue('High', FieldTypes.PRIORITY));
-console.log('Priority (string):', formatFieldValue('High', 'priority'));
-console.log('Resolution:', formatFieldValue('Done', 'resolution'));
-console.log('Status:', formatFieldValue('In Progress', 'status'));
-console.log('Security Level:', formatFieldValue('Restricted', 'securitylevel'));
-console.log('Project:', formatFieldValue('MYPROJ', 'project'));
-console.log('Number:', formatFieldValue('42', 'number'));
-console.log('String:', formatFieldValue('Hello World', 'string'));
-console.log('Attachment:', formatFieldValue('document.pdf', 'attachment'));
-console.log('Issue Links:', formatFieldValue('PROJ-123', 'issuelinks'));
+// Mock minimal schema set to avoid real network calls
+const mockDescriptors = [
+  { id: 'summary', name: 'Summary', required: true, schema: { type: 'string' } },
+  { id: 'priority', name: 'Priority', required: false, schema: { type: 'priority' } },
+  { id: 'duedate', name: 'Due Date', required: false, schema: { type: 'date' } },
+  { id: 'labels', name: 'Labels', required: false, schema: { type: 'array', items: { type: 'string' } } }
+];
+
+const mockClient = { get: async () => ({ ok: true, json: async () => ({ values: mockDescriptors }) }) };
+
+console.log('📝 Single Field (Fields.formatValue):');
+// Use a numeric issue type ID (e.g., 10200) to bypass issue type name resolution network calls
+const ISSUE_TYPE_ID = '10200';
+console.log('Issue Type (mocked unknown -> error):', await Fields.formatValue({ fieldNameOrId: 'Issue Type', value: 'Bug', projectKey: 'DEMO', issueType: ISSUE_TYPE_ID, client: mockClient }));
+console.log('Priority:', await Fields.formatValue({ fieldNameOrId: 'Priority', value: 'High', projectKey: 'DEMO', issueType: ISSUE_TYPE_ID, client: mockClient }));
+console.log('Due Date (Excel 45290):', await Fields.formatValue({ fieldNameOrId: 'Due Date', value: 45290, projectKey: 'DEMO', issueType: ISSUE_TYPE_ID, client: mockClient }));
 console.log();
 
-// Date handling
-console.log('📅 Date Handling:');
-console.log('Regular date:', formatFieldValue('2023-12-25', 'date'));
-console.log('Excel date (45290):', formatFieldValue(45290, 'date'));
-console.log('DateTime:', formatFieldValue('2023-12-25T10:30:00Z', 'datetime'));
+// Bulk formatting using Fields facade
+console.log('📦 Bulk Formatting (Fields.formatValues):');
+const raw = { Summary: '  Title  ', Labels: 'one,two', Priority: 'High', Unknown: 'x' };
+const formatted = await Fields.formatValues({ values: raw, projectKey: 'DEMO', issueType: ISSUE_TYPE_ID, client: mockClient, options: { omitEmpty: true } });
+console.log('Formatted fields:', formatted.fields);
+console.log('Unknown fields:', formatted.unknown);
 console.log();
 
-// Array types
-console.log('📋 Array Types:');
-console.log('Array of options (constant):', formatFieldValue('Red,Green,Blue', FieldTypes.ARRAY, FieldTypes.OPTION));
-console.log('Array of options (string):', formatFieldValue('Red,Green,Blue', 'array', 'option'));
-console.log('Array of strings:', formatFieldValue('Item1,Item2,Item3', 'array', 'string'));
-console.log('Array of versions:', formatFieldValue('1.0,2.0,3.0', 'array', 'version'));
-console.log('Array of priorities:', formatFieldValue('High,Medium,Low', 'array', 'priority'));
-console.log('Array of resolutions:', formatFieldValue('Done,Won\'t Fix,Duplicate', 'array', 'resolution'));
+// Build an issue payload using Issues facade
+console.log('🧠 Issue Payload (Issues.buildPayload):');
+const payloadResult = await Issues.buildPayload({ projectKey: 'DEMO', issueType: ISSUE_TYPE_ID, values: raw, options: { omitEmpty: true }, client: mockClient });
+console.log('Payload:', payloadResult.payload);
+console.log('Diagnostics:', payloadResult.diagnostics);
 console.log();
 
-// Special types
-console.log('🔧 Special Types:');
-console.log('Cascading select (with child):', formatFieldValue('Hardware -> Laptop', 'option-with-child'));
-console.log('Cascading select (no child):', formatFieldValue('Hardware', 'option-with-child'));
-console.log('Time tracking:', formatFieldValue('2w 3d 4h 30m', 'timetracking'));
-console.log('Watches (single user):', formatFieldValue('john.doe', 'watches'));
-console.log('Watches (multiple users):', formatFieldValue('john.doe,jane.smith,admin', 'watches'));
-console.log('Watches (empty):', formatFieldValue('', 'watches'));
-console.log();
-
-// Service Desk specific fields
-console.log('🎫 Service Desk Fields:');
-console.log('SLA Agreement:', formatFieldValue('Gold Level SLA', 'sd-servicelevelagreement'));
-console.log('Approvals:', formatFieldValue('Manager Approval Required', 'sd-approvals'));
-console.log('Customer Request Type:', formatFieldValue('Service Request', 'sd-customerrequesttype'));
-console.log();
-
-// Empty values
-console.log('🚫 Empty Values:');
-console.log('Empty string:', formatFieldValue('', 'string'));
-console.log('Null value:', formatFieldValue(null, 'string'));
-console.log('Whitespace:', formatFieldValue('   ', 'string'));
-console.log();
-
-// Error handling example
-console.log('⚠️ Error Handling:');
-try {
-  formatFieldValue('test', 'invalid-type');
-} catch (error) {
-  console.log('Error caught:', error.message);
-}
-
-try {
-  formatFieldValue('test', FieldTypes.ARRAY); // Missing array type
-} catch (error) {
-  console.log('Error caught:', error.message);
-}
-
-console.log('\n✅ Examples completed!');
+console.log('\n✅ Facade examples completed!');

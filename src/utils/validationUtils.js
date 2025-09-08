@@ -3,7 +3,17 @@
  */
 
 // Using domain-owned field type taxonomy (v3.0.0 consolidated in Field.js)
-import { isValidFieldType, isValidArrayFieldType } from '../domain/Field.js';
+// Legacy domain Field removed; lightweight internal validators retained
+
+function isValidFieldType(fieldType){
+  // Accept broad primitive + known jira value wrappers for backward compatibility where used internally
+  const allowed = new Set(['string','number','date','datetime','array','option','user','project','priority','issuetype','option-with-child','timeTracking','any']);
+  return allowed.has(fieldType);
+}
+
+function isValidArrayFieldType(t){
+  return isValidFieldType(t); // relaxed – arrays may contain any base type we recognize
+}
 
 /**
  * Check if a value is empty (null, undefined, or empty string)

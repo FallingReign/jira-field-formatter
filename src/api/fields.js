@@ -39,7 +39,9 @@ class FieldsApi {
       const data = await response.json();
       return Array.isArray(data.issueTypes) ? data.issueTypes : [];
     } catch (error) {
-      logger.error('_getIssueTypes exception:', error);
+      if (process.env.DEBUG_JIRA_FORMATTER) {
+        logger.error('_getIssueTypes exception:', error);
+      }
       return [];
     }
   }
