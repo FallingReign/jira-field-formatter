@@ -1,11 +1,11 @@
 # Migration Guide (v2 → v3)
 
-This guide summarizes the breaking changes and how to move to the new facade-based API.
+This guide summarizes the breaking changes and how to move to the new facade-based API. The final v3 design removed the interim dynamic classifier/mapper entirely—raw Jira schema is now passed through with only minimal formatting inference.
 
 ## Key Goals of v3
 - Single, noun-based entry points (`Fields`, `Issues`, `Projects`, `Users`, `Screens`, `Diagnostics`).
 - Remove legacy services (`FieldService`, `IssueService`) and scattered helpers.
-- Dynamic schema classification (no static mapping tables / constants export).
+- Eliminate static mapping tables / constants and ultimately any internal classification layer.
 - Batch formatting focuses on field names/ids; internal logic handles schema & types.
 
 ## Removed / Replaced
@@ -17,23 +17,22 @@ This guide summarizes the breaking changes and how to move to the new facade-bas
 | `validateIssueFields()` | Removed | `Issues.validatePayload()` (and internal field validation) |
 | Root `formatFieldValue(value, type, arrayItemType?)` | Removed | `Fields.formatValue({ fieldNameOrId, value, projectKey, issueType })` (context-aware) |
 | `Field` class | Removed | Plain descriptor objects |
-| Static schema mapping constants | Removed | Heuristic `mapSchema` (internal) |
-| `fields/constants.js` | Removed | Not needed after heuristic inference |
+| Static schema mapping constants | Removed | Raw schema passthrough + minimal `deriveKind` helper (internal) |
+| `fields/constants.js` | Removed | Not needed |
+| `mapper.js` / heuristic map layer | Removed | Not needed; raw schema only |
 
 ## What Stayed
 | Still Available | Notes |
 |-----------------|-------|
 | `JiraApiClient`, `FieldsApi`, `IssuesApi`, `UsersApi`, `resolveIssueTypeId` | Advanced use; imported from root. |
 
-## Descriptor Shape (v3)
+## Descriptor Shape (v3 raw passthrough)
 ```js
 {
   id: 'customfield_10010',
   name: 'Story Points',
   required: false,
-  schema: { ...raw Jira schema... },
-  fieldType: 'number' | 'string' | 'array' | 'option' | 'user' | 'date' | 'datetime' | 'unknown',
-  arrayItemType?: 'string' | 'user' | 'option' | 'date' | 'datetime' | 'unknown'
+  schema: { ...raw Jira schema... }
 }
 ```
 
@@ -108,11 +107,11 @@ It encouraged bypassing schema context (required flags, type inference). Facades
 **How do I map field names to IDs now?**  
 `Fields.formatValues` and `Fields.formatValue` resolve IDs automatically based on the create screen for your project + issue type.
 
-**What if classification mis-detects a custom field?**  
-It will surface `fieldType: 'unknown'`. Planned Diagnostics enhancements (v3.x) will expose collected warnings; you can still inspect `descriptor.schema` directly.
+**What if I need a type hint?**  
+Inspect `descriptor.schema`. Minimal strategies (date/datetime/number/array) are inferred on-the-fly; everything else is passthrough. Future diagnostics may surface unsupported schema patterns.
 
 ## Next Planned Enhancements (Post v3 Initial)
-See `.ai/SYSTEM_OVERVIEW.md` Deferred Enhancements section (mapper tests, diagnostics warnings, classification hook, strict/raw modes, validation expansion).
+See `.ai/SYSTEM_OVERVIEW.md` Deferred Enhancements section (diagnostics warnings, optional formatting hook, strict mode, validation expansion).
 
 ## Versioning
 Treat this as a breaking change (major). If you depended on removed symbols, refactor using the mappings above.

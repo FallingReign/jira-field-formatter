@@ -14,7 +14,7 @@ function mockFetchSequence(responses){
 describe('Fields facade (new API) – expanded intent', () => {
   afterEach(()=>{ global.fetch = originalFetch; });
 
-  test('getAllForIssueType returns normalized descriptor with fieldType mapping', async () => {
+  test('getAllForIssueType returns raw descriptor with schema passthrough', async () => {
     mockFetchSequence([
       { issueTypes: [{ name: 'Bug', id: '10001' }] },
       { values: [ { id: 'customfield_1', name: 'Story Points', required: true, schema: { type: 'number' } } ] }
@@ -22,7 +22,7 @@ describe('Fields facade (new API) – expanded intent', () => {
     const list = await Fields.getAllForIssueType({ projectKey: 'PROJ', issueType: 'Bug' });
     expect(list).toHaveLength(1);
     expect(list[0]).toMatchObject({ id: 'customfield_1', name: 'Story Points', required: true });
-    expect(typeof list[0].fieldType).toBe('string');
+    expect(list[0].schema).toEqual({ type: 'number' });
   });
 
   test('findField respects caseInsensitive option (expected fail until implemented)', async () => {

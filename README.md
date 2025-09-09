@@ -1,6 +1,6 @@
 # Jira Field Formatter
 
-Convert your data into the format Jira expects using simple facade objects (`Fields`, `Issues`, etc.). Dynamic schema inference – no manual type constants.
+Format Jira issue field values and assemble payloads using simple facade objects (`Fields`, `Issues`, etc.). Raw Jira schema is passed through—no internal type taxonomy or constant tables. Minimal inference only (date, datetime, number, array) handled automatically.
 
 [![npm version](https://img.shields.io/badge/version-3.0.0-blue)](https://github.com/FallingReign/jira-field-formatter)
 
@@ -53,10 +53,10 @@ git add . && git commit -m "Add jira-field-formatter submodule"
 
 ### Import in your code
 ```javascript
-import { formatFieldValue, Fields, Issues } from './lib/jira-field-formatter/index.js';
+import { Fields, Issues } from './lib/jira-field-formatter/index.js';
 ```
 
-> **Requirements:** Node.js 14+ with ES modules support
+> **Requirements:** Node.js 14+ with ES modules support (18+ recommended)
 
 ## 🔧 Submodule Management
 
@@ -130,7 +130,7 @@ const bugSchema = await fieldsApi.getFieldSchema('Priority', 'PROJ', 'Bug');
 
 ## 🧠 Issue Payload Assembly (Issues facade)
 
-Use the `Fields` and `Issues` facades for all workflows. Legacy services were removed in v3.
+Use the `Fields` and `Issues` facades for all workflows.
 
 ```javascript
 import { Fields, Issues } from 'jira-field-formatter';
@@ -164,13 +164,7 @@ const { payload } = await Issues.buildPayload({ projectKey: 'PROJ', issueType: '
 Raw Input -> Fields (schema + formatting) -> Issues (payload assembly) -> IssuesApi -> JiraApiClient -> Jira REST API
 ```
 
-### Deprecation / Removal Summary
-
-| Item | Status | Replacement |
-|------|--------|-------------|
-| `FieldService`, `IssueService` | Removed in v3 | `Fields`, `Issues` |
-| `formatIssueFields`, etc. | Removed | `Fields.formatValues` / `Issues.buildPayload` |
-| Deep internal imports | Discouraged | Root exports |
+<!-- Historical deprecations removed to keep README focused on current API surface -->
 
 ## Creating Complete Jira Issues (Facade Approach)
 
@@ -192,21 +186,15 @@ JIRA_API_VERSION=3
 JIRA_TOKEN=your-personal-access-token
 ```
 
-## Supported Field Types (Selected)
+## Minimal Formatting Strategies
 
-- String (`string`)
-- Number (`number`)
-- Date (`date`)
-- DateTime (`datetime`)
-- Issue Type (`issuetype`)
-- Priority (`priority`)
-- User / Assignee (`user`, `assignee`)
-- Project (`project`)
-- Component (`component`)
-- Version (`version`)
-- Option (`option`)
-- Time Tracking (`timetracking`)
-- Array (`array` + subtype)
+The library does not maintain a classification taxonomy. Instead it:
+- Detects date & datetime schemas and formats ISO strings.
+- Detects numeric schemas and coerces to number.
+- Handles arrays (splitting simple comma strings when appropriate or ensuring arrays stay arrays).
+- Passes through all other values untouched (consumer can inspect `descriptor.schema`).
+
+Advanced: you can inspect the derived kind internally via `kind.js` (not exported yet) if contributing. Future optional hooks may allow custom formatting injection.
 
 ## Error Handling
 
@@ -223,5 +211,4 @@ Found a bug or want to add a field type? Open an issue or PR.
 
 MIT License
 
-## Migration
-Upgrading from a pre‑v3 release? See `MIGRATION.md` for mappings and rationale. Legacy service-based examples are in `examples/archive`.
+<!-- Migration section intentionally omitted: README reflects current state only -->

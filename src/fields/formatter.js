@@ -1,4 +1,5 @@
 import { isEmpty } from '../core/utils/isEmpty.js';
+import { deriveKind } from './kind.js';
 
 // Simple Levenshtein distance for suggestion scoring (small input set so perf fine)
 function levenshtein(a, b){
@@ -45,7 +46,8 @@ function formatDateTime(value){
 export function formatFieldValue(descriptor, value){
   if(!descriptor) return { error: 'UNKNOWN_FIELD', value, formatted: null };
   if(isEmpty(value)) return { formatted: null };
-  switch(descriptor.fieldType){
+  const kind = deriveKind(descriptor.schema);
+  switch(kind){
     case 'date':
       return { formatted: formatDate(value) };
     case 'datetime':
@@ -54,7 +56,7 @@ export function formatFieldValue(descriptor, value){
       return { formatted: Number(value) };
     case 'array':
       if(!Array.isArray(value)) return { error: 'EXPECTED_ARRAY', value, formatted: null };
-      return { formatted: value.map(v => v) }; // refine per item type later
+      return { formatted: value.slice() };
     default:
       return { formatted: value };
   }
